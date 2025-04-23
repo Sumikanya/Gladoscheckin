@@ -1,6 +1,7 @@
 import requests
 import json
 import os
+import urllib.parse
 
 from pypushdeer import PushDeer
 
@@ -8,8 +9,6 @@ from pypushdeer import PushDeer
 # github workflows
 # -------------------------------------------------------------------------------------------
 if __name__ == '__main__':
-    # pushdeer key 申请地址 https://www.pushdeer.com/product.html
-    sckey = os.environ.get("SENDKEY", "")
 
     # 推送内容
     title = ""
@@ -85,13 +84,35 @@ if __name__ == '__main__':
         # 推送内容 
         title = f'# 未找到 cookies!'
 
-    print("sckey:", sckey)
-    print("cookies:", cookies)
+    #print("sckey:", sckey)
+    #print("cookies:", cookies)
     
     # 推送消息
     # 未设置 sckey 则不进行推送
-    if not sckey:
-        print("Not push")
+
+    # bark 服务地址和推送 token
+    bark_url = os.environ.get("BARK_URL", "")  # e.g. http://127.0.0.1:8080
+    bark_token = os.environ.get("BARK_TOKEN", "")
+
+    print("BARK_URL:", os.environ.get("BARK_URL"))
+    print("BARK_TOKEN:", os.environ.get("BARK_TOKEN"))
+
+    # URL 编码
+    encoded_title = urllib.parse.quote(title)
+    encoded_context = urllib.parse.quote(context)
+
+    # 推送消息
+    if bark_url and bark_token:
+        # 构建 bark 推送 URL：{bark_url}/{token}/{title}/{message}
+        push_url = f"{bark_url}/{bark_token}/{encoded_title}/{encoded_context}"
+        print(push_url)
+        try:
+            resp = requests.get(push_url)
+            if resp.status_code == 200:
+                print("Bark 推送成功")
+            else:
+                print(f"Bark 推送失败，状态码: {resp.status_code}")
+        except Exception as e:
+            print(f"Bark 推送异常: {e}")
     else:
-        pushdeer = PushDeer(pushkey=sckey) 
-        pushdeer.send_text(title, desp=context)
+        print("未配置 BARK_URL 或 BARK_TOKEN，跳过推送")
